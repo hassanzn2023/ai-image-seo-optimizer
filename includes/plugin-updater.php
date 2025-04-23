@@ -374,9 +374,19 @@ function aiso_custom_plugin_information($result, $action, $args) {
         'high' => '',
         'low' => ''
     );
-    $info->icons = isset($data->icons) ? (array)$data->icons : array(
-        'default' => '',
-    );
+
+    // إضافة الأيقونات من version.json
+    if (isset($data->icons) && is_object($data->icons)) {
+        $info->icons = (array)$data->icons;
+    } else {
+        // أيقونات افتراضية إذا لم يتم توفيرها في الملف
+        $info->icons = array(
+            '1x' => 'https://raw.githubusercontent.com/hassanzn2023/ai-image-seo-optimizer/main/assets/icon-128x128.png',
+            '2x' => 'https://raw.githubusercontent.com/hassanzn2023/ai-image-seo-optimizer/main/assets/icon-256x256.png',
+            'default' => 'https://raw.githubusercontent.com/hassanzn2023/ai-image-seo-optimizer/main/assets/icon-256x256.png'
+        );
+    }
+    // --- نهاية الكود المضاف/المعدل ---
     
     // إضافة الأقسام
     if (isset($data->sections) && is_object($data->sections)) {
