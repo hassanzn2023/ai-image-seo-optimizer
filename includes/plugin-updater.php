@@ -189,9 +189,113 @@ class AISO_GitHub_Updater {
 }
 
 /**
+ * دالة بديلة للتحقق من وجود تحديثات من خلال ملف version.json
+ * 
+ * @param object $transient كائن التخزين المؤقت للتحديثات
+ * @return object كائن التخزين المؤقت بعد التحديث
+ */
+function aiso_check_for_updates_via_json($transient) {
+    if (empty($transient->checked)) {
+        return $transient;
+    }
+
+    // تحديد ملف الإضافة
+    $plugin_slug = 'ai-image-seo-optimizer';
+    $plugin_file = 'ai-image-seo-optimizer/ai-image-seo-optimizer.php';
+    
+    // البحث عن الملف الرئيسي للإضافة
+    $plugin_files = array_keys($transient->checked);
+    $found_plugin = preg_grep('/' . preg_quote(basename($plugin_file), '/') . '$/', $plugin_files);
+    
+    if (!empty($found_plugin)) {
+        $plugin_file = reset($found_plugin);
+    } else {
+        error_log('AISO: Plugin file not found for update check');
+        return $transient;
+    }
+
+    // النسخة الحالية المثبتة
+    $current_version = $transient->checked[$plugin_file];
+    error_log("AISO: Checking for updates. Current version: {$current_version}");
+
+    // الحصول على معلومات الإصدار من ملف version.json
+    $remote_version_url = 'https://raw.githubusercontent.com/hassanzn2023/ai-image-seo-optimizer/main/version.json';
+    $response = wp_remote_get($remote_version_url, array('timeout' => 10));
+
+    if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
+        error_log('AISO: Failed to fetch version info: ' . (is_wp_error($response) ? $response->get_error_message() : wp_remote_retrieve_response_code($response)));
+        return $transient;
+    }
+
+    $data = json_decode(wp_remote_retrieve_body($response));
+
+    if (!isset($data->new_version) || !isset($data->download_url)) {
+        error_log('AISO: Invalid version data received');
+        return $transient;
+    }
+
+    error_log("AISO: Remote version: {$data->new_version}");
+
+    // تنظيف صيغة الإصدار (إزالة 'v' في بداية الإصدار إن وجدت)
+    $remote_version = preg_replace('/^v/', '', $data->new_version);
+    
+    // مقارنة الإصدارات
+    if (version_compare($current_version, $remote_version, '<')) {
+        error_log("AISO: Update available: {$current_version} -> {$remote_version}");
+        
+        $transient->response[$plugin_file] = (object) [
+            'slug' => $plugin_slug,
+            'new_version' => $remote_version,
+            'url' => $data->url ?? "https://github.com/hassanzn2023/ai-image-seo-optimizer",
+            'package' => $data->download_url,
+            'plugin' => $plugin_file,
+        ];
+    } else {
+        error_log("AISO: No update available. Current: {$current_version}, Remote: {$remote_version}");
+    }
+
+    return $transient;
+}
+
+/**
+ * معالجة عملية تنزيل التحديث
+ * 
+ * @param mixed $reply رد النظام الافتراضي
+ * @param string $package عنوان URL الخاص بالحزمة
+ * @param object $upgrader كائن المحدّث
+ * @return mixed
+ */
+function aiso_filter_upgrader_pre_download($reply, $package, $upgrader) {
+    if (!$package) {
+        return $reply;
+    }
+
+    $plugin = isset($upgrader->skin->plugin) ? $upgrader->skin->plugin : '';
+    $plugin_slug = 'ai-image-seo-optimizer';
+    
+    // إذا كان التحديث متعلق بإضافتنا
+    if (strpos($plugin, $plugin_slug) !== false) {
+        error_log("AISO: Processing download for plugin: {$plugin}");
+        error_log("AISO: Package URL: {$package}");
+        
+        // يمكنك هنا إضافة أي منطق خاص للتعامل مع حزمة التنزيل
+        // مثل تحويل عنوان URL أو التحقق من الأمان
+        
+        // في معظم الحالات، يمكننا ترك الأمر للنظام الافتراضي ليقوم بالتنزيل
+        return $reply;
+    }
+
+    return $reply;
+}
+
+/**
  * تهيئة محدث الإضافة
  */
 function aiso_init_github_updater() {
+    // للتطوير والاختبار فقط، يمكنك تعطيل تفعيل المحدث القديم عن طريق إضافة علامة تعليق
+    // إذا كان المحدث الجديد يعمل بشكل صحيح، يمكنك إزالة الكود أدناه
+    
+    /*
     // معلومات المستودع
     $github_username = 'hassanzn2023';
     $github_repo_name = 'ai-image-seo-optimizer';
@@ -201,7 +305,17 @@ function aiso_init_github_updater() {
     
     // إنشاء كائن المحدث
     new AISO_GitHub_Updater($plugin_file, $github_username, $github_repo_name);
+    */
+    
+    // نقوم بتسجيل دالة تشخيص للتعرف على إصدار الإضافة الحالي
+    error_log('AISO: Plugin init. Current version: ' . AISO_VERSION);
 }
 
 // تشغيل المحدث عند تحميل ووردبريس
 add_action('init', 'aiso_init_github_updater');
+
+// إضافة الفلتر للتحقق من التحديثات
+add_filter('pre_set_site_transient_update_plugins', 'aiso_check_for_updates_via_json');
+
+// فلتر لمعالجة التنزيل
+add_filter('upgrader_pre_download', 'aiso_filter_upgrader_pre_download', 10, 3);
