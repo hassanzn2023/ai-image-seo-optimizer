@@ -3,7 +3,7 @@
  * Plugin Name:       AI Image SEO Optimizer
  * Plugin URI:        https://github.com/hassanzn2023/ai-image-seo-optimizer
  * Description:       Optimize image title and alt text for Media Library images found on pages using AI. Includes bulk actions on Page Analyzer.
- * Version:           1.2.6
+ * Version:           1.2.7
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Hassan Zein
@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('AISO_VERSION', '1.2.6'); // <-- تحديث الإصدار
+define('AISO_VERSION', '1.2.7'); // <-- تحديث الإصدار
 define('AISO_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('AISO_PLUGIN_URL', plugin_dir_url(__FILE__));
 
