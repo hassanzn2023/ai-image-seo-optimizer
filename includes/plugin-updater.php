@@ -319,3 +319,91 @@ add_filter('pre_set_site_transient_update_plugins', 'aiso_check_for_updates_via_
 
 // فلتر لمعالجة التنزيل
 add_filter('upgrader_pre_download', 'aiso_filter_upgrader_pre_download', 10, 3);
+
+/**
+ * دالة معالجة طلبات معلومات الإضافة
+ * توفر معلومات تفصيلية عن الإضافة عند النقر على "عرض التفاصيل"
+ * 
+ * @param mixed $result النتيجة الحالية
+ * @param string $action الإجراء المطلوب
+ * @param object $args معلومات الطلب
+ * @return object معلومات الإضافة
+ */
+function aiso_custom_plugin_information($result, $action, $args) {
+    // التحقق من أن الإجراء هو طلب معلومات الإضافة
+    if ($action !== 'plugin_information') {
+        return $result;
+    }
+    
+    // التحقق من أن الإضافة المطلوبة هي إضافتنا
+    if (!isset($args->slug) || strpos($args->slug, 'ai-image-seo-optimizer') === false) {
+        return $result;
+    }
+    
+    // الحصول على معلومات الإصدار من ملف version.json
+    $remote_version_url = 'https://raw.githubusercontent.com/hassanzn2023/ai-image-seo-optimizer/main/version.json';
+    $response = wp_remote_get($remote_version_url, array('timeout' => 10));
+    
+    // التحقق من نجاح الطلب
+    if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
+        error_log('AISO: Failed to fetch version info: ' . (is_wp_error($response) ? $response->get_error_message() : wp_remote_retrieve_response_code($response)));
+        return $result;
+    }
+    
+    $data = json_decode(wp_remote_retrieve_body($response));
+    
+    // التحقق من صحة البيانات
+    if (!isset($data->new_version)) {
+        error_log('AISO: Invalid version data received');
+        return $result;
+    }
+    
+    // إنشاء كائن المعلومات
+    $info = new stdClass();
+    $info->slug = 'ai-image-seo-optimizer';
+    $info->name = 'AI Image SEO Optimizer';
+    $info->plugin_name = 'AI Image SEO Optimizer';
+    $info->version = $data->new_version;
+    $info->author = isset($data->author) ? $data->author : '<a href="https://github.com/hassanzn2023">Hassan Zein</a>';
+    $info->requires = isset($data->requires) ? $data->requires : '5.2';
+    $info->tested = isset($data->tested) ? $data->tested : '6.4';
+    $info->requires_php = isset($data->requires_php) ? $data->requires_php : '7.2';
+    $info->last_updated = isset($data->last_updated) ? $data->last_updated : date('Y-m-d');
+    $info->download_link = $data->download_url;
+    $info->banners = isset($data->banners) ? (array)$data->banners : array(
+        'high' => '',
+        'low' => ''
+    );
+    $info->icons = isset($data->icons) ? (array)$data->icons : array(
+        'default' => '',
+    );
+    
+    // إضافة الأقسام
+    if (isset($data->sections) && is_object($data->sections)) {
+        $info->sections = (array)$data->sections;
+    } else {
+        // الأقسام الافتراضية إذا لم يتم توفيرها
+        $info->sections = array(
+            'description' => 'Optimize image title and alt text for Media Library images found on pages using AI. Includes bulk actions on Page Analyzer.',
+            'installation' => '<ol><li>Upload the plugin files to the <code>/wp-content/plugins/ai-image-seo-optimizer</code> directory, or install the plugin through the WordPress plugins screen directly.</li><li>Activate the plugin through the \'Plugins\' screen in WordPress</li><li>Use the Settings page to configure the plugin</li></ol>',
+            'changelog' => '<h3>' . $data->new_version . '</h3><ul><li>تحسينات عديدة</li></ul>',
+            'screenshots' => '',
+            'faq' => '<h3>How do I set up API key?</h3><p>You can set up your API key in the plugin settings page.</p>',
+        );
+    }
+    
+    // إضافة روابط مفيدة
+    $info->external = isset($data->url) ? $data->url : 'https://github.com/hassanzn2023/ai-image-seo-optimizer';
+    $info->homepage = isset($data->url) ? $data->url : 'https://github.com/hassanzn2023/ai-image-seo-optimizer';
+    
+    // تسجيل بعض معلومات التصحيح إذا كان وضع التطوير مفعل
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('AISO: Returning plugin info for slug: ' . $args->slug);
+        error_log('AISO: Version: ' . $info->version);
+    }
+    
+    return $info;
+}
+
+// إضافة فلتر لمعالجة طلبات معلومات الإضافة
+add_filter('plugins_api', 'aiso_custom_plugin_information', 10, 3);
