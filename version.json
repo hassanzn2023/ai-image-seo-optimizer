@@ -1,9 +1,9 @@
 {
-    "new_version": "1.2.5",  // زيادة رقم الإصدار
+    "new_version": "1.2.5",
     "url": "https://github.com/hassanzn2023/ai-image-seo-optimizer",
-    "download_url": "https://github.com/hassanzn2023/ai-image-seo-optimizer/archive/refs/tags/v1.2.5.zip",  // تحديث رابط التنزيل
+    "download_url": "https://github.com/hassanzn2023/ai-image-seo-optimizer/archive/refs/tags/v1.2.5.zip",
     "sections": {
         "description": "Optimize image title and alt text for Media Library images found on pages using AI.",
-        "changelog": "<h3>1.2.5</h3><ul><li>التعديلات الجديدة هنا</li></ul>"  // تحديث سجل التغييرات
+        "changelog": "<h3>1.2.5</h3><ul><li>التعديلات الجديدة هنا</li></ul>"
     }
 }
